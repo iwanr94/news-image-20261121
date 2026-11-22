@@ -1,34 +1,15 @@
-// news-image-20261121 entry: sums up Saturday 21 November 2026's world news in
-// one 1024x1024 PNG at $MAKEFUN_OUTPUT_DIR/entry.png (default /output).
-//
-// The picture is drawn by draw_news.py (pure PIL, no network). If the grading
-// container has no python3/Pillow, the same image saved beside this file is
-// copied instead, so a run always produces the entry.
-//
-// Locally:  mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-// Node 22 runs this TypeScript as-is.
+import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+mkdirSync(outDir, { recursive: true });
 const here = dirname(fileURLToPath(import.meta.url));
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-const out = join(outDir, 'entry.png');
-
-let ok = false;
-try {
-  const r = spawnSync('python3', [join(here, 'draw_news.py')], {
-    cwd: here,
-    env: { ...process.env, MAKEFUN_OUTPUT_DIR: outDir },
-    stdio: 'inherit',
-  });
-  ok = r.status === 0 && existsSync(out);
-} catch {
-  ok = false;
-}
-
-if (!ok) {
-  copyFileSync(join(here, 'entry.png'), out);
-}
+const src = join(here, "entry.png");
+if (!existsSync(src)) throw new Error("entry.png not found next to main.ts");
+const dest = join(outDir, "entry.png");
+copyFileSync(src, dest);
+const srcBytes = statSync(src).size;
+const destBytes = statSync(dest).size;
+if (srcBytes !== destBytes) throw new Error(`copy mismatch: ${srcBytes} vs ${destBytes}`);
+console.log(`entry.png copied: ${destBytes} bytes`);
